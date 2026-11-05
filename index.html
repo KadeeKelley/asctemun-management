@@ -964,7 +964,7 @@ function cloudConfigured(){
   return SUPABASE_CONFIG.url &&
     SUPABASE_CONFIG.anonKey &&
     !SUPABASE_CONFIG.url.includes('YOUR-PROJECT') &&
-    !SUPABASE_CONFIG.key.includes('YOUR_SUPABASE');
+    !SUPABASE_CONFIG.anonKey.includes('YOUR_SUPABASE');
 }
 function cloudMsg(el,text,type=''){
   el.textContent=text||'';
