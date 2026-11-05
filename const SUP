@@ -882,7 +882,6 @@ renderMotions();
     </form>
     <div id="cloudAuthMessage" class="cloud-message"></div>
     <div class="cloud-divider"></div>
-    <div class="cloud-note">For the first setup, enter your Supabase project URL and publishable/anon key in the <b>SUPABASE_CONFIG</b> block near the bottom of this file.</div>
   </div>
 </div>
 
@@ -940,8 +939,8 @@ renderMotions();
   4. Deploy this HTML as index.html on any static host.
 */
 const SUPABASE_CONFIG = {
-  url: "https://YOUR-PROJECT.supabase.co",
-  key: "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
+  url: "https://dwsobxbmbczjiayolxrr.supabase.co",
+  anonKey: "sb_publishable_vG4_VG6tX7uAgmk54cc5bA_Kh0N2x0b"
 };
 
 let cloudClient = null;
