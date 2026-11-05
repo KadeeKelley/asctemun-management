@@ -226,14 +226,45 @@ function formatTime(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${Str
 function finishPassedMotion(){if(!currentMotion)return;let id=currentMotion.id;motions=motions.filter(m=>m.id!==id);currentMotion=null;persistState();renderMotions();updateStats();setTimeout(()=>switchTab('dashboard'),250)}
 function nextSpeaker(){pauseTimer();if(currentMotion?.type==='Unmoderated caucus'){toast('Unmoderated caucus complete');finishPassedMotion();return}if(presentationMode){if(presentationPhase==='presenting'){presentationPhase='qa';timerSeconds=qaTime;timerRemaining=qaTime;updateBanners();updateTimer();return}presentationPhase='presenting';if(queueIndex<queue.length-1){queueIndex++;timerSeconds=presentationTime;timerRemaining=presentationTime;creditResolutionPresenters();renderQueue();updateTimer()}else{toast('Resolution presentation queue complete');updateBanners();setTimeout(()=>switchTab('dashboard'),250)}return}creditCurrentSpeaker();if(queueIndex<queue.length-1){queueIndex++;timerSeconds=currentMotion?.speaking||timerSeconds;timerRemaining=timerSeconds;renderQueue();updateTimer()}else{creditCurrentSpeaker();toast('Speaker queue complete');finishPassedMotion();}persistState();renderDelegates();updateStats()}function saveRank(){let n=+$('speechRank').value;let item=queue[queueIndex],country=typeof item==='string'?item:item?.country;if(!n||!country)return;let d=delegates.find(x=>x.country===country);if(d)d.scores.push(n);persistState();toast('Speech score saved')}
 function toggleNotesDrawer(){let d=$('notesDrawer'),t=$('notesTabTrigger');d.classList.toggle('hidden');t?.classList.toggle('open',!d.classList.contains('hidden'));if(!d.classList.contains('hidden'))renderNotes()}
-function renderNotes(){let box=$('notesList');if(!box)return;box.innerHTML=notes.slice().reverse().map(n=>`<div class="note-card" onclick="openNoteEditor(${n.id})"><div class="note-countries">${n.countries.map(esc).join(', ')||'No countries selected'}</div><div class="note-text">${esc(n.text)}</div><div class="note-date">${esc(n.date||'')}</div></div>`).join('')||'<div class="muted">No notes yet. Add a note to start your committee record.</div>'}
+function renderNotes(){let box=$('notesList');if(!box)return;box.innerHTML=notes.slice().reverse().map(n=>`<div class="note-card" onclick="openNoteEditor('${n.id}')"><div class="note-countries">${n.countries.map(esc).join(', ')||'No countries selected'}</div><div class="note-text">${esc(n.text)}</div><div class="note-date"><b>${esc(n.authorName||'Administrator')}</b> · ${esc(n.date||'')}</div></div>`).join('')||'<div class="muted">No notes yet. Add a note to start your committee record.</div>'}
 function renderNoteCountryResults(){let input=$('noteCountrySearch'),box=$('noteCountryResults');if(!input||!box)return;let q=input.value.trim().toLowerCase();let choices=delegates.filter(d=>!noteSelected.includes(d.id)&&(!q||d.country.toLowerCase().startsWith(q)||d.name.toLowerCase().startsWith(q))).sort((a,b)=>a.country.localeCompare(b.country,undefined,{sensitivity:'base'}));box.innerHTML=choices.map(d=>`<div class="note-country-result" onclick="toggleNoteCountry(${d.id})">${esc(d.country)}</div>`).join('');box.classList.toggle('hidden',!choices.length)}
 function toggleNoteCountry(id){if(noteSelected.includes(id))noteSelected=noteSelected.filter(x=>x!==id);else noteSelected.push(id);renderNoteEditorSelection();renderNoteCountryResults()}
 function renderNoteEditorSelection(){let box=$('noteSelectedCountries');if(!box)return;box.innerHTML=noteSelected.map(id=>{let d=delegates.find(x=>x.id===id);return d?`<span class="note-chip" onclick="toggleNoteCountry(${id})">${esc(d.country)} ×</span>`:''}).join('')||'<span class="muted" style="font-size:10px">No countries selected</span>'}
 function openAddNote(){editingNoteId=null;noteSelected=[];modal('Add a note',`<div class="note-country-picker"><div class="field"><label>COUNTRIES</label><input id="noteCountrySearch" placeholder="Search countries…" oninput="renderNoteCountryResults()"></div><div id="noteSelectedCountries" class="note-selected"></div><div id="noteCountryResults" class="note-country-results hidden"></div></div><div class="field"><label>NOTE</label><textarea id="noteText" class="note-fullscreen-text" placeholder="Write your note…"></textarea></div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveNote()">Save note</button>`,'note-editor-modal');renderNoteEditorSelection();renderNoteCountryResults()}
 function openNoteEditor(id){let n=notes.find(x=>x.id===id);if(!n)return;editingNoteId=id;noteSelected=n.countryIds.slice();modal('Edit note',`<div class="note-country-picker"><div class="field"><label>COUNTRIES</label><input id="noteCountrySearch" placeholder="Search countries…" oninput="renderNoteCountryResults()"></div><div id="noteSelectedCountries" class="note-selected"></div><div id="noteCountryResults" class="note-country-results hidden"></div></div><div class="field"><label>NOTE</label><textarea id="noteText" class="note-fullscreen-text">${esc(n.text)}</textarea></div>`,`<button class="btn delete-btn" onclick="deleteNote(${id})">Delete</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveNote()">Save changes</button>`,'note-editor-modal');renderNoteEditorSelection();renderNoteCountryResults()}
-function saveNote(){let text=($('noteText')?.value||'').trim();if(!noteSelected.length){toast('Select at least one country');return}if(!text){toast('Write a note first');return}let countries=noteSelected.map(id=>delegates.find(d=>d.id===id)?.country).filter(Boolean);if(editingNoteId){let n=notes.find(x=>x.id===editingNoteId);if(n){n.countryIds=[...noteSelected];n.countries=countries;n.text=text;n.date=new Date().toLocaleString()}}else notes.push({id:Math.max(0,...notes.map(n=>n.id))+1,countryIds:[...noteSelected],countries,text,date:new Date().toLocaleString()});persistState();closeModal();renderNotes();renderDelegates();toast(editingNoteId?'Note updated':'Note added')}
-function deleteNote(id){notes=notes.filter(n=>n.id!==id);persistState();closeModal();renderNotes();renderDelegates();toast('Note deleted')}
+async function saveNote(){
+  let text=($('noteText')?.value||'').trim();
+  if(!noteSelected.length){toast('Select at least one country');return}
+  if(!text){toast('Write a note first');return}
+  let countries=noteSelected.map(id=>delegates.find(d=>d.id===id)?.country).filter(Boolean);
+  const author=cloudAuthorName();
+  if(cloudUser && cloudCommitteeId && cloudClient){
+    if(editingNoteId){
+      const {error}=await cloudClient.from('committee_notes').update({country_ids:[...noteSelected],countries,text}).eq('id',editingNoteId).eq('committee_id',cloudCommitteeId);
+      if(error){toast('Could not update note: '+error.message);return}
+    }else{
+      const {data,error}=await cloudClient.from('committee_notes').insert({committee_id:cloudCommitteeId,author_user_id:cloudUser.id,country_ids:[...noteSelected],countries,text,author_name:author}).select('*').single();
+      if(error){toast('Could not save note: '+error.message);return}
+      notes.push({id:data.id,countryIds:data.country_ids,countries:data.countries,text:data.text,date:data.created_at,authorName:data.author_name});
+    }
+    await cloudLoadSharedNotes();
+  }else{
+    if(editingNoteId){let n=notes.find(x=>x.id===editingNoteId);if(n){n.countryIds=[...noteSelected];n.countries=countries;n.text=text;n.date=new Date().toLocaleString();n.authorName=n.authorName||author}}
+    else notes.push({id:Math.max(0,...notes.map(n=>Number(n.id)||0))+1,countryIds:[...noteSelected],countries,text,date:new Date().toLocaleString(),authorName:author});
+    persistState();
+  }
+  closeModal();renderNotes();renderDelegates();toast(editingNoteId?'Note updated':'Note added')
+}
+async function deleteNote(id){
+  if(cloudUser && cloudCommitteeId && cloudClient){
+    const {error}=await cloudClient.from('committee_notes').delete().eq('id',id).eq('committee_id',cloudCommitteeId);
+    if(error){toast('Could not delete note: '+error.message);return}
+    await cloudLoadSharedNotes();
+  }else{
+    notes=notes.filter(n=>n.id!==id);persistState();
+  }
+  closeModal();renderNotes();renderDelegates();toast('Note deleted')
+}
 function openProfile(id){let d=delegates.find(x=>x.id===id);if(!d)return;let avg=d.scores.length?(d.scores.reduce((a,b)=>a+b,0)/d.scores.length).toFixed(1):'—';let noted=notes.filter(n=>n.countryIds.includes(d.id)).length;let dnotes=notes.filter(n=>n.countryIds.includes(d.id));let avgBlock=appMode==='committee'?'':`<div class="profile-stat avg-speech-profile"><span>Average speech</span><b>${avg}</b></div>`;$('profileContent').innerHTML=`<div class="profile-top"><div class="profile-monogram">${esc(d.country.slice(0,2).toUpperCase())}</div><div><div class="profile-name">${esc(d.country)}</div><div class="subline">${esc(d.name)} · <span class="status ${d.status==='Absent'?'absent':d.status==='Present and voting'?'pv':''}">${esc(d.status)}</span></div></div><button class="btn small" style="margin-left:auto" onclick="editDelegate(${d.id})">Edit delegate</button><button class="btn small delete-btn" onclick="deleteDelegate(${d.id})">Delete delegate</button></div><div class="profile-grid"><div class="profile-stat"><span>Times speaking</span><b>${d.speakingTimes}</b></div><div class="profile-stat"><span>Motions made</span><b>${d.motions}</b></div>${avgBlock}<div class="profile-stat resolution-count-stat"><span>Times noted</span><b>${noted}</b><small>${noted} notes</small></div></div><div class="grid-main"><div class="panel resolution-contrib-panel"><div class="panel-head"><div class="panel-title">Resolution Contributions</div></div><div class="panel-body">${d.resolutions.length?d.resolutions.map(x=>`<div class="activity-row"><span class="activity-dot"></span><div>${esc(x.title)}<span class="activity-time">${x.presenter?'Presenter':esc(x.role)}</span></div></div>`).join(''):'<span style="font-size:11px">No resolution contributions recorded yet.</span>'}</div></div></div><div class="panel" style="margin-top:16px"><div class="panel-head"><div><div class="panel-title">Notes</div><div class="panel-desc">Notes attached to ${esc(d.country)}</div></div><button class="btn small" onclick="openAddNoteForCountry(${d.id})">＋ Add note</button></div><div class="panel-body">${dnotes.length?dnotes.slice().reverse().map(n=>`<div class="note-card" onclick="openNoteEditor(${n.id})"><div class="note-countries">${n.countries.map(esc).join(', ')}</div><div class="note-text">${esc(n.text)}</div><div class="note-date">${esc(n.date||'')}</div></div>`).join(''):'<div class="muted">No notes for this delegate yet.</div>'}</div></div>`;switchTab('profile')}
 function openAddNoteForCountry(id){editingNoteId=null;noteSelected=[id];modal('Add a note',`<div class="note-country-picker"><div class="field"><label>COUNTRIES</label><input id="noteCountrySearch" placeholder="Search countries…" oninput="renderNoteCountryResults()"></div><div id="noteSelectedCountries" class="note-selected"></div><div id="noteCountryResults" class="note-country-results hidden"></div></div><div class="field"><label>NOTE</label><textarea id="noteText" class="note-fullscreen-text" placeholder="Write your note…"></textarea></div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveNote()">Save note</button>`,'note-editor-modal');renderNoteEditorSelection();renderNoteCountryResults()}
 function deleteDelegate(id){let d=delegates.find(x=>x.id===id);if(!d)return;modal('Delete delegate',`<p>Delete <b>${esc(d.country)}</b> and their delegate record?</p><p class="panel-desc">This cannot be undone in the current session.</p>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn delete-btn" onclick="confirmDeleteDelegate(${id})">Delete delegate</button>`)}function confirmDeleteDelegate(id){delegates=delegates.filter(d=>d.id!==id);queue=queue.filter(c=>delegates.some(d=>d.country===c));if(queueIndex>=queue.length)queueIndex=Math.max(0,queue.length-1);persistState();closeModal();updateStats();renderDelegates();switchTab('delegates');toast('Delegate deleted')}function editDelegate(id){let d=delegates.find(x=>x.id===id);modal('Edit delegate',`<div class="form-grid"><div class="field"><label>COUNTRY / DELEGATION</label><input id="editCountry" value="${esc(d.country)}"></div><div class="field"><label>DELEGATE NAME</label><input id="editName" value="${esc(d.name)}"></div><div class="field full"><label>ATTENDANCE</label><select id="editStatus"><option ${d.status==='Present'?'selected':''}>Present</option><option ${d.status==='Present and voting'?'selected':''}>Present and voting</option><option ${d.status==='Absent'?'selected':''}>Absent</option></select></div></div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveDelegate(${id})">Save</button>`)}function saveDelegate(id){let d=delegates.find(x=>x.id===id);d.country=$('editCountry').value;d.name=$('editName').value;d.status=$('editStatus').value;persistState();closeModal();updateStats();openProfile(id)}
@@ -443,7 +474,7 @@ function renderResolutions(){
   const box=$('resolutionList');if(!box)return;
   box.innerHTML=resolutions.map((r,idx)=>{
     const contrib=[];delegates.forEach(d=>(d.resolutions||[]).filter(x=>x.resolutionId===r.id&&['Presentation & Q&A','For','Against'].includes(x.role)).forEach(x=>contrib.push(`${d.country}: ${x.role}`)));
-    return `<div class="resolution-card" draggable="true" data-rindex="${idx}" ondragstart="resolutionDragStart(event,${idx})" ondragover="resolutionDragOver(event)" ondrop="resolutionDrop(event,${idx})" ondragend="resolutionDragEnd()"><div class="pdf-icon">${esc(resolutionAcronym(r.title))}</div><div><div class="resolution-title">${esc(r.title)}</div><div class="resolution-meta">${r.sponsors.length} sponsors · ${r.signatories.length} signatories</div><div class="resolution-meta">Sponsors: ${r.sponsors.map(esc).join(', ')||'—'}</div><div class="resolution-meta">Signatories: ${r.signatories.map(esc).join(', ')||'—'}</div><div class="resolution-meta">Resolution speakers: ${contrib.join(' · ')||'Not assigned'}</div></div><span class="handle">⠿</span></div>`;
+    return `<div class="resolution-card" draggable="true" data-rindex="${idx}" ondragstart="resolutionDragStart(event,${idx})" ondragover="resolutionDragOver(event)" ondrop="resolutionDrop(event,${idx})" ondragend="resolutionDragEnd()"><div class="pdf-icon">${esc(resolutionAcronym(r.title))}</div><div><div class="resolution-title">${esc(r.title)}</div><div class="resolution-meta">${r.sponsors.length} sponsors · ${r.signatories.length} signatories</div><div class="resolution-meta">Sponsors: ${r.sponsors.map(esc).join(', ')||'—'}</div><div class="resolution-meta">Signatories: ${r.signatories.map(esc).join(', ')||'—'}</div><div class="resolution-meta">Resolution speakers: ${contrib.join(' · ')||'Not assigned'}</div>${r.status==='Passed'?`<div class="resolution-meta" style="color:#16865b;font-weight:700">Passed · ${Number(r.votesInFavor)||0} votes in favor</div>`:r.status==='Failed'?`<div class="resolution-meta" style="color:#b45353;font-weight:700">Failed · ${Number(r.votesInFavor)||0} votes in favor</div>`:''}</div><span class="handle">⠿</span></div>`;
   }).join('')||'<div class="panel panel-body">No resolutions yet. Add a draft resolution to get started.</div>';
   renderResolutionMotions();
 }
@@ -829,6 +860,7 @@ renderMotions();
 }
 </style>
 
+<button id="cloudBackToHubBtn" class="cloud-btn" style="display:none;position:fixed;left:16px;top:16px;z-index:10010">My Committees</button>
 <div id="asctemunCloudAuth">
   <div class="cloud-card">
     <div class="cloud-brand">ASCTEMUN Conference Management</div>
@@ -862,7 +894,7 @@ renderMotions();
         <div class="cloud-title">My Committees</div>
         <div class="cloud-sub" style="margin-bottom:0">Open a previous committee or start a new conference record.</div>
       </div>
-      <button class="cloud-btn" id="cloudSignOutBtn">Sign out</button>
+      <div class="cloud-actions" style="margin-top:0"><button class="cloud-btn" id="cloudDiasBtn">Dias / Officers</button><button class="cloud-btn" id="cloudSignOutBtn">Sign out</button></div>
     </div>
     <div class="cloud-actions">
       <button class="cloud-btn primary" id="cloudNewCommitteeBtn">+ New committee</button>
@@ -871,6 +903,30 @@ renderMotions();
     <div class="cloud-divider"></div>
     <div id="cloudCommitteeList" class="cloud-list"></div>
     <div id="cloudHubMessage" class="cloud-message"></div>
+  </div>
+</div>
+
+<div id="asctemunDiasModal" style="display:none;position:fixed;inset:0;background:#0008;z-index:10020;align-items:center;justify-content:center;padding:18px">
+  <div class="cloud-card" style="max-width:760px;width:100%;max-height:90vh;overflow:auto">
+    <div class="cloud-top">
+      <div><div class="cloud-brand">ASCTEMUN</div><div class="cloud-title">Dias / Officer Access</div><div class="cloud-sub" style="margin-bottom:0">The original account is the administrator. Officers use their own email and password to sign in.</div></div>
+      <button class="cloud-btn" id="cloudDiasCloseBtn">Close</button>
+    </div>
+    <div id="cloudDiasAdmin" class="cloud-note" style="margin-top:14px"></div>
+    <div id="cloudDiasAdminControls" style="display:none">
+      <div class="cloud-divider"></div>
+      <div class="cloud-title" style="font-size:18px">Add an Officer</div>
+      <form id="cloudOfficerForm">
+        <div class="cloud-field"><label>Name</label><input id="cloudOfficerName" required maxlength="120" placeholder="Full name"></div>
+        <div class="cloud-field"><label>Officer position</label><input id="cloudOfficerPosition" required maxlength="80" placeholder="Chair, Secretary-General, etc."></div>
+        <div class="cloud-field"><label>Email</label><input id="cloudOfficerEmail" type="email" required maxlength="254" placeholder="officer@example.com"></div>
+        <button class="cloud-btn primary" type="submit">Add Officer</button>
+      </form>
+    </div>
+    <div id="cloudDiasMessage" class="cloud-message"></div>
+    <div class="cloud-divider"></div>
+    <div class="cloud-title" style="font-size:18px">Officers</div>
+    <div id="cloudOfficerList" class="cloud-list"></div>
   </div>
 </div>
 
@@ -894,6 +950,10 @@ let cloudCommitteeId = null;
 let cloudSaveTimer = null;
 let cloudSaveInFlight = false;
 let cloudSaveQueued = false;
+let cloudOrgId = null;
+let cloudRole = null;
+let cloudOfficerName = null;
+let cloudCommitteeChannel = null;
 
 const cloudAuth = document.getElementById('asctemunCloudAuth');
 const cloudHub = document.getElementById('asctemunCommitteeHub');
@@ -915,10 +975,11 @@ function cloudShowAuth(show){
 }
 function cloudShowHub(show){
   cloudHub.style.display=show?'flex':'none';
+  const b=document.getElementById('cloudBackToHubBtn'); if(b) b.style.display=(show||!cloudCommitteeId)?'none':'block';
 }
 function cloudState(){
   return {
-    delegates, motions, resolutions, notes, appMode, delegateSort,
+    delegates, motions, resolutions, appMode, delegateSort,
     committeeName: $('committeeTitle')?.textContent || 'Committee Name',
     resolutionMotions, resolutionDebate, resolutionDebateOrder
   };
@@ -928,7 +989,7 @@ function cloudApplyState(st){
   delegates=Array.isArray(st.delegates)?st.delegates:[];
   motions=Array.isArray(st.motions)?st.motions:[];
   resolutions=Array.isArray(st.resolutions)?st.resolutions:[];
-  notes=Array.isArray(st.notes)?st.notes:[];
+  if(Array.isArray(st.notes)) notes=st.notes;
   appMode=st.appMode==='committee'?'committee':'chair';
   delegateSort=st.delegateSort||'country';
   resolutionMotions=st.resolutionMotions||resolutionMotions;
@@ -945,7 +1006,7 @@ function cloudFormatDate(s){
 }
 async function cloudLoadCommittees(){
   const {data,error}=await cloudClient.from('committees')
-    .select('id,name,archived,created_at,updated_at')
+    .select('id,name,archived,created_at,updated_at,organization_id')
     .order('updated_at',{ascending:false});
   if(error) throw error;
   return data||[];
@@ -963,8 +1024,7 @@ async function cloudRenderCommittees(){
         </div>
         <div class="cloud-actions" style="margin-top:0">
           <button class="cloud-btn primary" onclick="cloudOpenCommittee('${c.id}')">Open</button>
-          ${c.archived?`<button class="cloud-btn" onclick="cloudUnarchiveCommittee('${c.id}')">Unarchive</button>`:`<button class="cloud-btn" onclick="cloudArchiveCommittee('${c.id}')">Archive</button>`}
-          <button class="cloud-btn danger" onclick="cloudDeleteCommittee('${c.id}')">Delete</button>
+          ${cloudRole==='admin'?(c.archived?`<button class="cloud-btn" onclick="cloudUnarchiveCommittee('${c.id}')">Unarchive</button>`:`<button class="cloud-btn" onclick="cloudArchiveCommittee('${c.id}')">Archive</button><button class="cloud-btn danger" onclick="cloudDeleteCommittee('${c.id}')">Delete</button>`):''}
         </div>
       </div>`).join(''):`<div class="cloud-empty">No committees yet. Create one to start.</div>`;
     cloudMsg(cloudHubMessage,'');
@@ -976,6 +1036,8 @@ async function cloudOpenCommittee(id){
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
   cloudCommitteeId=data.id;
   cloudApplyState(data.state||{});
+  await cloudLoadSharedNotes(data.state?.notes||[]);
+  cloudSubscribeCommittee(data.id);
   cloudShowHub(false);
   cloudShowAuth(false);
   cloudMsg(cloudHubMessage,'');
@@ -995,7 +1057,7 @@ async function cloudCreateCommittee(importCurrent=false){
   state.committeeName=name.trim();
   cloudMsg(cloudHubMessage,'Saving committee…');
   const {data,error}=await cloudClient.from('committees').insert({
-    user_id:cloudUser.id,name:name.trim(),state,archived:false
+    user_id:cloudUser.id,organization_id:cloudOrgId,name:name.trim(),state,archived:false
   }).select().single();
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
   cloudCommitteeId=data.id;
@@ -1007,17 +1069,17 @@ async function cloudCreateCommittee(importCurrent=false){
 async function cloudImportCurrent(){
   await cloudCreateCommittee(true);
 }
-async function cloudArchiveCommittee(id){
+async function cloudArchiveCommittee(id){if(cloudRole!=='admin'){toast('Only the administrator can archive committees.');return}
   const {error}=await cloudClient.from('committees').update({archived:true}).eq('id',id);
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
   cloudRenderCommittees();
 }
-async function cloudUnarchiveCommittee(id){
+async function cloudUnarchiveCommittee(id){if(cloudRole!=='admin'){toast('Only the administrator can unarchive committees.');return}
   const {error}=await cloudClient.from('committees').update({archived:false}).eq('id',id);
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
   cloudRenderCommittees();
 }
-async function cloudDeleteCommittee(id){
+async function cloudDeleteCommittee(id){if(cloudRole!=='admin'){toast('Only the administrator can delete committees.');return}
   if(!confirm('Delete this committee and all of its saved conference data?'))return;
   const {error}=await cloudClient.from('committees').delete().eq('id',id);
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
@@ -1075,12 +1137,20 @@ async function cloudBootstrap(){
 }
 async function cloudOnSession(session){
   if(!session){
-    cloudUser=null;cloudCommitteeId=null;cloudShowHub(false);cloudShowAuth(true);return;
+    cloudUser=null;cloudCommitteeId=null;cloudOrgId=null;cloudRole=null;cloudOfficerName=null;
+    cloudShowHub(false);cloudShowAuth(true);return;
   }
   cloudUser=session.user;
+  const {data:orgData,error:orgError}=await cloudClient.rpc('ensure_my_organization');
+  if(orgError){cloudMsg(cloudAuthMessage,orgError.message,'error');return}
+  const me=Array.isArray(orgData)?orgData[0]:orgData;
+  cloudOrgId=me?.organization_id||null;
+  cloudRole=me?.role||'officer';
+  cloudOfficerName=me?.display_name||null;
   cloudShowAuth(false);
   cloudShowHub(true);
   await cloudRenderCommittees();
+  if(cloudRole==='admin') cloudRenderOfficerList();
 }
 document.getElementById('cloudAuthForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -1106,12 +1176,175 @@ document.getElementById('cloudSignOutBtn').addEventListener('click',cloudSignOut
 document.getElementById('cloudNewCommitteeBtn').addEventListener('click',()=>cloudCreateCommittee(false));
 document.getElementById('cloudImportBtn').addEventListener('click',cloudImportCurrent);
 
+
+async function cloudRenderOfficerList(){
+  const box=document.getElementById('cloudOfficerList');
+  const adminBox=document.getElementById('cloudDiasAdmin');
+  const controls=document.getElementById('cloudDiasAdminControls');
+  if(adminBox) adminBox.textContent=`Administrator: ${cloudUser?.email||'—'}`;
+  if(controls) controls.style.display=cloudRole==='admin'?'block':'none';
+  if(!box||!cloudOrgId)return;
+  const {data,error}=await cloudClient.from('officer_access').select('id,name,position,email,user_id,created_at').eq('organization_id',cloudOrgId).order('created_at',{ascending:true});
+  if(error){box.innerHTML='<div class="cloud-empty">'+esc(error.message)+'</div>';return}
+  box.innerHTML=data?.length?data.map(o=>`
+    <div class="cloud-row">
+      <div class="cloud-row-main">
+        <div class="cloud-row-title">${esc(o.name)} <span class="cloud-row-meta">— ${esc(o.position)}</span></div>
+        <div class="cloud-row-meta">${esc(o.email)} · ${o.user_id?'Account linked':'Not signed up yet'}</div>
+      </div>
+      ${cloudRole==='admin'?`<button class="cloud-btn danger" onclick="cloudRemoveOfficer('${o.id}')">Remove</button>`:''}
+    </div>`).join(''):'<div class="cloud-empty">No officers have been added yet.</div>';
+}
+async function cloudRemoveOfficer(id){
+  if(cloudRole!=='admin')return;
+  if(!confirm('Remove this officer from ASCTEMUN access?'))return;
+  const {error}=await cloudClient.rpc('remove_officer',{p_id:id});
+  if(error){cloudMsg(document.getElementById('cloudDiasMessage'),error.message,'error');return}
+  cloudMsg(document.getElementById('cloudDiasMessage'),'Officer access removed.','ok');
+  await cloudRenderOfficerList();
+  await cloudRenderCommittees();
+}
+async function cloudSubscribeCommittee(id){
+  if(cloudCommitteeChannel){try{await cloudClient.removeChannel(cloudCommitteeChannel)}catch(e){}}
+  cloudCommitteeChannel=cloudClient.channel('committee-'+id)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'committees',filter:'id=eq.'+id},payload=>{
+      if(payload.new?.state) cloudApplyState(payload.new.state);
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'committee_notes',filter:'committee_id=eq.'+id},async()=>{await cloudLoadSharedNotes()})
+    .subscribe();
+}
+async function cloudLoadSharedNotes(legacyNotes=[]){
+  if(!cloudCommitteeId)return;
+  const {data,error}=await cloudClient.from('committee_notes').select('*').eq('committee_id',cloudCommitteeId).order('created_at',{ascending:true});
+  if(error)return;
+  if((data||[]).length){
+    notes=data.map(n=>({id:n.id,countryIds:n.country_ids||[],countries:n.countries||[],text:n.text||'',date:n.created_at,authorName:n.author_name||'Administrator'}));
+  }else if(legacyNotes?.length){
+    // One-time migration of legacy notes stored in committee JSON.
+    const rows=legacyNotes.map(n=>({committee_id:cloudCommitteeId,author_user_id:cloudUser.id,country_ids:n.countryIds||[],countries:n.countries||[],text:n.text||'',author_name:n.authorName||cloudOfficerName||'Administrator'}));
+    const {data:inserted}=await cloudClient.from('committee_notes').insert(rows).select('*');
+    if(inserted?.length) notes=inserted.map(n=>({id:n.id,countryIds:n.country_ids||[],countries:n.countries||[],text:n.text||'',date:n.created_at,authorName:n.author_name||'Administrator'}));
+  }else notes=[];
+  renderNotes(); renderDelegates();
+}
+function cloudAuthorName(){
+  return cloudOfficerName || (cloudRole==='admin'?'Administrator':'Officer');
+}
+document.getElementById('cloudBackToHubBtn').addEventListener('click',async()=>{ if(cloudCommitteeChannel){try{await cloudClient.removeChannel(cloudCommitteeChannel)}catch(e){}} cloudCommitteeChannel=null; cloudCommitteeId=null; cloudShowHub(true); await cloudRenderCommittees(); });
+document.getElementById('cloudDiasBtn').addEventListener('click',async()=>{
+  document.getElementById('asctemunDiasModal').style.display='flex';
+  await cloudRenderOfficerList();
+});
+document.getElementById('cloudDiasCloseBtn').addEventListener('click',()=>{
+  document.getElementById('asctemunDiasModal').style.display='none';
+});
+document.getElementById('cloudOfficerForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(cloudRole!=='admin')return;
+  const name=document.getElementById('cloudOfficerName').value.trim();
+  const position=document.getElementById('cloudOfficerPosition').value.trim();
+  const email=document.getElementById('cloudOfficerEmail').value.trim().toLowerCase();
+  const out=document.getElementById('cloudDiasMessage');
+  cloudMsg(out,'Adding officer…');
+  const {error}=await cloudClient.rpc('add_officer',{p_name:name,p_position:position,p_email:email});
+  if(error){cloudMsg(out,error.message,'error');return}
+  e.target.reset();
+  cloudMsg(out,'Officer added. They can create/sign into their Supabase account using that email.','ok');
+  await cloudRenderOfficerList();
+});
+
 window.cloudOpenCommittee=cloudOpenCommittee;
 window.cloudArchiveCommittee=cloudArchiveCommittee;
 window.cloudUnarchiveCommittee=cloudUnarchiveCommittee;
 window.cloudDeleteCommittee=cloudDeleteCommittee;
+window.cloudRemoveOfficer=cloudRemoveOfficer;
 
 cloudBootstrap();
+</script>
+
+
+<script>
+/* Resolution voting workflow */
+function votingSimpleMajority(){const present=delegates.filter(d=>d.status!=='Absent').length;return present?Math.floor(present/2)+1:0}
+function renderResolutionMotions(){
+  const box=$('resolutionMotionsSection');if(!box)return;
+  if(!Array.isArray(resolutionMotions))resolutionMotions=[];
+  const ordered=[...resolutionMotions].sort((a,b)=>(Number(a.introducedOrder)||0)-(Number(b.introducedOrder)||0));
+  box.innerHTML=`<div class="panel resolution-motions-section"><div class="panel-head"><div><div class="panel-title">Resolution Motions</div><div class="panel-desc">Motions governing resolution presentation, debate, and voting.</div></div><button class="btn small tab-blue-btn" onclick="openResolutionMotionType()">＋ Add motion</button></div><div class="panel-body">${ordered.length?`<div class="resolution-motion-list">${ordered.map(m=>{const label=m.type==='voting'?'Begin Voting':resolutionMotionTypeLabel(m.type);const details=m.type==='voting'?'Vote on resolutions in a reorderable sequence':m.type==='presentation'?`${m.presentationTime} min presentation · ${m.speakingTime} min Q&A · Moved by ${esc(m.motionMaker||'—')}`:`${m.speakingTime} sec per speaker · Moved by ${esc(m.motionMaker||'—')}`;return `<div class="resolution-motion-card" onclick="resolutionMotionAction(${m.id})"><div class="motion-code">${m.type==='voting'?'VOTE':m.type==='presentation'?'P&Q':'2×2'}</div><div class="motion-info"><div class="motion-name">${label}</div><div class="resolution-motion-details">${details}</div></div><span class="motion-status ${resolutionMotionStatusClass(m.status||'Pending')}">${esc(m.status||'Pending')}</span><span class="arrow">›</span></div>`}).join('')}</div>`:'<div class="muted">No resolution motions have been added yet.</div>'}</div></div>`;
+}
+function openResolutionMotionType(){
+  modal('Add resolution motion',`<div class="field full"><label>MOTION TYPE</label><select id="resolutionMotionType" onchange="renderResolutionMotionFields()"><option value="">Select a motion type…</option><option value="twoForTwo">2 For 2 Against</option><option value="presentation">Presentation &amp; Q&A</option><option value="voting">Begin Voting</option></select></div><div id="resolutionMotionFields"></div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveResolutionMotion()">Add motion</button>`);
+}
+function renderResolutionMotionFields(){
+ const type=$('resolutionMotionType')?.value,box=$('resolutionMotionFields');if(!box)return;
+ if(type==='voting'){box.innerHTML='<p class="panel-desc" style="margin-top:12px">When this motion passes, arrange the resolutions in voting order and record the votes for each one.</p>';return}
+ if(!type){box.innerHTML='';return}
+ const timeField=type==='presentation'?`<div class="field"><label>PRESENTATION TIME (MINUTES)</label><input id="resolutionPresentationTime" type="number" min="1" value="5"></div><div class="field"><label>Q&amp;A SPEAKER TIME (MINUTES)</label><input id="resolutionSpeakingTime" type="number" min="1" value="2"></div>`:`<div class="field full"><label>INDIVIDUAL SPEAKER TIME (SECONDS)</label><input id="resolutionSpeakingTime" type="number" min="1" value="60"></div>`;
+ box.innerHTML=`<div class="form-grid" style="margin-top:12px">${timeField}<div id="motionMakerField" class="field full"><label>MOVED BY</label><button type="button" class="btn" style="text-align:left" onclick="showResolutionMotionMakers()">Select moved by</button><div id="motionMakerResults" class="country-results hidden"></div><div id="motionMakerSelected"></div></div></div>`;
+}
+function saveResolutionMotion(){
+ const type=$('resolutionMotionType')?.value;if(!type){toast('Choose a resolution motion type');return}
+ if(type!=='voting'&&!window._resolutionMotionMaker){toast('Click moved by and choose the delegate who made the motion');return}
+ const m={id:nextResolutionMotionId(),type,status:'Pending',motionMaker:window._resolutionMotionMaker||'',speakingTime:type==='voting'?0:Math.max(1,+$('resolutionSpeakingTime')?.value||60),introducedOrder:resolutionMotions.length};
+ if(type==='presentation')m.presentationTime=Math.max(1,+$('resolutionPresentationTime').value||5);
+ resolutionMotions.push(m);window._resolutionMotionMaker=null;persistState();closeModal();renderResolutionMotions();toast('Resolution motion added');
+}
+function resolutionMotionAction(id){
+ const m=resolutionMotions.find(x=>x.id===id);if(!m)return;
+ const detail=m.type==='voting'?'This starts a resolution-by-resolution vote.':m.type==='presentation'?`${m.presentationTime} min presentation · ${m.speakingTime} min Q&A`:`${m.speakingTime} sec per speaker`;
+ modal('Resolution motion outcome',`<p><b>${m.type==='voting'?'Begin Voting':resolutionMotionTypeLabel(m.type)}</b></p><p class="panel-desc">${detail}${m.type==='voting'?'':` · Moved by ${esc(m.motionMaker||'—')}`} · Current status: ${esc(m.status||'Pending')}</p>`,`<button class="btn" onclick="keepResolutionMotionPending(${id})">Remains pending</button><button class="btn primary tab-blue-btn" onclick="passResolutionMotionV8(${id})">Passes</button><button class="btn delete-btn" onclick="failResolutionMotion(${id})">Fails</button>`);
+}
+function passResolutionMotionV8(id){
+ const m=resolutionMotions.find(x=>x.id===id);if(!m)return;m.status='Passed';persistState();closeModal();renderResolutionMotions();
+ if(m.type==='voting'){startResolutionVotingOrder(id);return}
+ openPassedResolutionMotionSelection(id);
+}
+let resolutionVotingDragIndex=null;
+function startResolutionVotingOrder(motionId){
+ const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
+ if(!resolutions.length){toast('Add at least one resolution first');return}
+ m.votingOrder=(Array.isArray(m.votingOrder)&&m.votingOrder.length?m.votingOrder:resolutions.map(r=>r.id)).filter(id=>resolutions.some(r=>r.id===id));
+ resolutions.forEach(r=>{if(!m.votingOrder.includes(r.id))m.votingOrder.push(r.id)});
+ m.votingIndex=0;window._activeVotingMotionId=motionId;persistState();renderResolutionVotingOrder(motionId);
+}
+function renderResolutionVotingOrder(motionId){
+ const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
+ const html=m.votingOrder.map((id,i)=>{const r=resolutions.find(x=>x.id===id);return `<div class="resolution-presenting-item" draggable="true" ondragstart="resolutionVotingDragStart(event,${i})" ondragover="resolutionVotingDragOver(event)" ondrop="resolutionVotingDrop(event,${i})"><span>⠿</span><span class="order-num">${i+1}</span><div class="order-main"><div class="order-title">${esc(r?.title||'Untitled resolution')}</div></div></div>`}).join('');
+ modal('Set voting order',`<p class="panel-desc">Drag the resolution blocks to set the order in which they will be voted on.</p><div id="resolutionVotingOrderList" class="resolution-presenting-list">${html}</div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary tab-blue-btn" onclick="beginResolutionVoting(${motionId})">Begin voting →</button>`);
+}
+function resolutionVotingDragStart(e,i){resolutionVotingDragIndex=i;e.dataTransfer.effectAllowed='move'}
+function resolutionVotingDragOver(e){e.preventDefault()}
+function resolutionVotingDrop(e,i){e.preventDefault();const m=resolutionMotions.find(x=>x.id===window._activeVotingMotionId);if(!m||resolutionVotingDragIndex===null||resolutionVotingDragIndex===i)return;const id=m.votingOrder.splice(resolutionVotingDragIndex,1)[0];m.votingOrder.splice(i,0,id);resolutionVotingDragIndex=null;renderResolutionVotingOrder(m.id)}
+function beginResolutionVoting(motionId){
+ const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
+ window._activeVotingMotionId=motionId;m.votingIndex=0;persistState();showResolutionVote(motionId);
+}
+function showResolutionVote(motionId){
+ const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
+ const r=resolutions.find(x=>x.id===m.votingOrder[m.votingIndex]);if(!r){closeModal();toast('Voting sequence complete');return}
+ const majority=votingSimpleMajority();
+ modal(`Vote on ${esc(r.title)}`,`<div class="panel-desc">Resolution ${m.votingIndex+1} of ${m.votingOrder.length}</div><div class="resolution-title" style="margin:12px 0 18px">${esc(r.title)}</div><div class="field"><label>VOTES IN FAVOR</label><input id="resolutionVotesInFavor" type="number" min="0" step="1" value="0" class="wide-centered-input"></div><p class="panel-desc" style="margin-top:10px">Simple majority: <b>${majority}</b> votes in favor. Based on ${delegates.filter(d=>d.status!=='Absent').length} delegates present.</p>`,`<button class="btn" onclick="closeModal()">Pause</button><button class="btn primary tab-blue-btn" onclick="submitResolutionVote(${motionId},${r.id})">Record vote</button>`);
+}
+function submitResolutionVote(motionId,resolutionId){
+ const m=resolutionMotions.find(x=>x.id===motionId),r=resolutions.find(x=>x.id===resolutionId);if(!m||!r)return;
+ const raw=$('resolutionVotesInFavor')?.value;if(raw===''||raw===undefined||!Number.isInteger(Number(raw))||Number(raw)<0){toast('Enter a valid number of votes in favor');return}
+ const votes=Number(raw),majority=votingSimpleMajority(),passed=votes>=majority;
+ r.status=passed?'Passed':'Failed';r.votesInFavor=votes;r.simpleMajority=majority;
+ delegates.forEach(d=>{
+   d.resolutions=d.resolutions||[];
+   d.resolutions=d.resolutions.filter(x=>!(x.resolutionId===r.id&&x.role==='Resolution Passed'));
+   if(passed&&(r.sponsors||[]).concat(r.signatories||[]).some(c=>c.toLowerCase()===d.country.toLowerCase())){
+     d.resolutions.push({title:r.title,role:'Resolution Passed',resolutionId:r.id});
+   }
+ });
+ persistState();renderResolutions();renderDelegates();
+ modal(passed?'Resolution passes':'Resolution fails',`<div class="resolution-title" style="margin:8px 0 16px">${esc(r.title)}</div><div style="font-size:15px;font-weight:700">${votes} votes in favor · ${majority} needed</div><p class="panel-desc" style="margin-top:10px">${passed?'This resolution has passed.':'This resolution did not reach a simple majority.'}</p>`,`<button class="btn primary tab-blue-btn" onclick="nextResolutionVote(${motionId})">${m.votingIndex<m.votingOrder.length-1?'Next resolution →':'Finish voting'}</button>`);
+}
+function nextResolutionVote(motionId){
+ const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
+ if(m.votingIndex<m.votingOrder.length-1){m.votingIndex++;persistState();showResolutionVote(motionId)}
+ else{closeModal();m.votingComplete=true;persistState();toast('Voting complete');window._activeVotingMotionId=null;renderResolutions()}
+}
 </script>
 
 </body></html>
