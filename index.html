@@ -940,8 +940,8 @@ renderMotions();
   4. Deploy this HTML as index.html on any static host.
 */
 const SUPABASE_CONFIG = {
-  url: 'https://dwsobxbmbczjiayolxrr.supabase.co',
-  anonKey: 'sb_publishable_vG4_VG6tX7uAgmk54cc5bA_Kh0N2x0b'
+  url: "https://YOUR-PROJECT.supabase.co",
+  key: "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
 };
 
 let cloudClient = null;
@@ -962,7 +962,7 @@ const cloudHubMessage = document.getElementById('cloudHubMessage');
 
 function cloudConfigured(){
   return SUPABASE_CONFIG.url &&
-    SUPABASE_CONFIG.key &&
+    SUPABASE_CONFIG.anonKey &&
     !SUPABASE_CONFIG.url.includes('YOUR-PROJECT') &&
     !SUPABASE_CONFIG.key.includes('YOUR_SUPABASE');
 }
@@ -1125,7 +1125,7 @@ async function cloudBootstrap(){
     document.getElementById('cloudSignUpBtn').disabled=true;
     return;
   }
-  cloudClient=supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.key,{
+  cloudClient=supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.anonKey,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
   const {data:{session}}=await cloudClient.auth.getSession();
