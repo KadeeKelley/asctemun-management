@@ -111,26 +111,11 @@ body,.app{color:#8d9cb7}
 
 .settings-wrap{position:relative;z-index:120}.settings-button{width:38px;height:38px;border:1px solid #4a5169;border-radius:50%;background:#fff;color:#102A43;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center}.settings-button:hover{background:#f1f4f8}.settings-menu{position:absolute;right:0;top:46px;width:330px;background:#fff;border:1px solid #d8dee7;border-radius:14px;box-shadow:0 16px 40px #0002;padding:16px;display:none}.settings-menu.open{display:block}.settings-title{font:700 14px var(--site-font-body);color:#102A43;margin-bottom:12px}.mode-option{display:block;border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:8px;cursor:pointer}.mode-option.active{border-color:#8d9cb7;background:#f4f6f9}.mode-option input{display:none}.mode-option b{display:block;font-size:12px;color:#102A43}.mode-option span{display:block;font-size:10px;line-height:1.45;color:var(--muted);margin-top:4px}.committee-mode-hidden{display:none!important}.notes-drawer,.notes-tab-trigger{z-index:100}.notes-drawer{box-shadow:-15px 0 45px #0003}.notes-tab-trigger.open{z-index:101}.speaker-picker .selected-speakers{display:grid;gap:7px;max-height:320px;overflow:auto;margin-top:10px}.speaker-order-block{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:var(--surface-2);cursor:grab}.speaker-order-block.dragging{opacity:.55}.speaker-order-block .speaker-order-main{flex:1}.speaker-order-block .speaker-order-main b{display:block;font-size:11px;color:#102A43}.speaker-order-block .speaker-order-main span{display:block;font-size:9px;color:var(--muted);margin-top:2px}.speaker-order-remove{border:0;background:transparent;color:#102A43;cursor:pointer;font-size:15px}.settings-gear{font-size:19px}
 
-.header-home-button{display:none;width:44px;height:44px;place-items:center;padding:0;border:0;background:transparent;color:#9AA6BC;cursor:pointer;flex:0 0 53px}
 
+/* Header home shortcut and solid-white Dias / Officer Access overlay */
+.header-home-button{display:none;width:66px;height:66px;place-items:center;padding:0;border:0;background:transparent;color:#9AA6BC;cursor:pointer;flex:0 0 66px}
 .header-home-button:hover{color:#AEB9CB;background:transparent;transform:none}
-
-.header-home-button svg {
-  width: 44px;
-  height: 44px;
-  fill: none !important;
-  stroke: currentColor !important;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.header-home-button img{
-  width:32px;
-  height:32px;
-  object-fit:contain;
-  display:block;
-}
+.header-home-button svg{width:58px;height:58px;fill:currentColor;display:block}
 #asctemunDiasModal{background:#fff!important;color:#102A43}
 #asctemunDiasModal .cloud-card{background:#fff!important;color:#102A43}
 #asctemunDiasModal .cloud-row{background:#fff!important}
@@ -141,12 +126,6 @@ body,.app{color:#8d9cb7}
 .settings-button:hover{background:transparent;transform:none;color:#AEB9CB}
 .settings-gear{font-size:58px;line-height:1;display:block;transform:translateY(-1px)}
 .settings-wrap{display:flex;align-items:center}
-.settings-menu{top:70px}
-
-/* Swap Home and Settings visual positions */
-.header-home-button{order:2}
-.settings-wrap{order:1}
-```
 .settings-menu{top:70px}
 .note-editor-modal-backdrop{z-index:200!important}
 .committee-mode-hidden{display:none!important}
@@ -924,7 +903,7 @@ renderMotions();
         <div class="cloud-title">My Committees</div>
         <div class="cloud-sub" style="margin-bottom:0">Open a previous committee or start a new conference record.</div>
       </div>
-      <div class="cloud-actions" style="margin-top:0"><button class="cloud-btn" id="cloudDiasBtn">Dias / Officers</button><button class="cloud-btn" id="cloudSignOutBtn">Sign out</button></div>
+      <div class="cloud-actions" style="margin-top:0"><button class="cloud-btn" id="cloudDiasBtn">Dias / Officers</button><button class="cloud-btn danger" id="cloudDeleteAccountBtn" type="button">Delete Account</button><button class="cloud-btn" id="cloudSignOutBtn">Sign out</button></div>
     </div>
     <div class="cloud-actions">
       <button class="cloud-btn primary" id="cloudNewCommitteeBtn">+ New committee</button>
@@ -933,6 +912,18 @@ renderMotions();
     <div class="cloud-divider"></div>
     <div id="cloudCommitteeList" class="cloud-list"></div>
     <div id="cloudHubMessage" class="cloud-message"></div>
+  </div>
+</div>
+
+<div id="cloudDeleteAccountModal" role="dialog" aria-modal="true" aria-labelledby="cloudDeleteAccountTitle" style="display:none;position:fixed;inset:0;background:#0009;z-index:10030;align-items:center;justify-content:center;padding:18px">
+  <div class="cloud-card" style="width:min(420px,100%);max-height:90vh">
+    <div class="cloud-title" id="cloudDeleteAccountTitle" style="font-size:23px">Delete Account</div>
+    <p style="color:#475569;line-height:1.5">Are you sure? This action cannot be undone.</p>
+    <div id="cloudDeleteAccountMessage" class="cloud-message" aria-live="polite"></div>
+    <div class="cloud-actions" style="justify-content:flex-end">
+      <button class="cloud-btn" id="cloudCancelDeleteAccountBtn" type="button">No, cancel</button>
+      <button class="cloud-btn danger" id="cloudConfirmDeleteAccountBtn" type="button">Yes, delete my account</button>
+    </div>
   </div>
 </div>
 
@@ -1204,6 +1195,39 @@ document.getElementById('cloudSignUpBtn').addEventListener('click',async()=>{
   else cloudMsg(cloudAuthMessage,'Account created. Check your email if email confirmation is enabled.','ok');
 });
 document.getElementById('cloudSignOutBtn').addEventListener('click',cloudSignOut);
+document.getElementById('cloudDeleteAccountBtn').addEventListener('click',()=>{
+  const modal=document.getElementById('cloudDeleteAccountModal');
+  const msg=document.getElementById('cloudDeleteAccountMessage');
+  const yes=document.getElementById('cloudConfirmDeleteAccountBtn');
+  cloudMsg(msg,''); yes.disabled=false; yes.textContent='Yes, delete my account';
+  modal.style.display='flex';
+});
+document.getElementById('cloudCancelDeleteAccountBtn').addEventListener('click',()=>{
+  document.getElementById('cloudDeleteAccountModal').style.display='none';
+});
+document.getElementById('cloudConfirmDeleteAccountBtn').addEventListener('click',cloudDeleteOwnAccount);
+async function cloudDeleteOwnAccount(){
+  const yes=document.getElementById('cloudConfirmDeleteAccountBtn');
+  const msg=document.getElementById('cloudDeleteAccountMessage');
+  if(!cloudClient || !cloudUser){cloudMsg(msg,'You must be signed in to delete your account.','error');return}
+  yes.disabled=true; yes.textContent='Deleting…'; cloudMsg(msg,'Deleting your account…');
+  try{
+    const {data:{session},error:sessionError}=await cloudClient.auth.getSession();
+    if(sessionError || !session?.access_token) throw new Error('Your session has expired. Please sign in again.');
+    const {data,error}=await cloudClient.functions.invoke('delete-own-account');
+    if(error) throw error;
+    if(data?.error) throw new Error(data.error);
+    await cloudClient.auth.signOut();
+    document.getElementById('cloudDeleteAccountModal').style.display='none';
+    cloudUser=null; cloudCommitteeId=null; cloudOrgId=null; cloudRole=null; cloudOfficerName=null;
+    cloudShowHub(false); cloudShowAuth(true);
+    cloudMsg(cloudAuthMessage,'Your account has been deleted.','ok');
+  }catch(err){
+    cloudMsg(msg,err?.message||'Account deletion failed. Please try again.','error');
+    yes.disabled=false; yes.textContent='Yes, delete my account';
+  }
+}
+
 document.getElementById('cloudNewCommitteeBtn').addEventListener('click',()=>cloudCreateCommittee(false));
 document.getElementById('cloudImportBtn').addEventListener('click',cloudImportCurrent);
 
