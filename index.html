@@ -1271,7 +1271,13 @@ document.getElementById('cloudSignUpBtn').addEventListener('click',async()=>{
   const password=document.getElementById('cloudPassword').value;
   if(!email||!password){cloudMsg(cloudAuthMessage,'Enter an email and a password first.','error');return}
   cloudMsg(cloudAuthMessage,'Creating account…');
-  const {data,error}=await cloudClient.auth.signUp({email,password});
+  const { data, error } = await cloudClient.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: window.location.origin + window.location.pathname
+  }
+});
   if(error){cloudMsg(cloudAuthMessage,error.message,'error');return}
   if(data.session) cloudMsg(cloudAuthMessage,'Account created.','ok');
   else cloudMsg(cloudAuthMessage,'Account created. Check your email if email confirmation is enabled.','ok');
