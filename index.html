@@ -167,9 +167,11 @@ body,.app{color:#8d9cb7}
 .resolution-result-modal.passed .modal-body{background:#8d9cb7}
 .resolution-result-modal.failed .modal-body{background:#8d9cb7}
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.confetti i{position:absolute;width:9px;height:16px;top:-24px;animation:confetti-fall 2.7s linear infinite;opacity:.9}
-.confetti i:nth-child(1){left:7%;animation-delay:.1s;transform:rotate(15deg)}.confetti i:nth-child(2){left:18%;animation-delay:.7s;transform:rotate(55deg)}.confetti i:nth-child(3){left:31%;animation-delay:.25s;transform:rotate(20deg)}.confetti i:nth-child(4){left:45%;animation-delay:1s;transform:rotate(75deg)}.confetti i:nth-child(5){left:58%;animation-delay:.45s;transform:rotate(35deg)}.confetti i:nth-child(6){left:71%;animation-delay:1.2s;transform:rotate(65deg)}.confetti i:nth-child(7){left:84%;animation-delay:.6s;transform:rotate(15deg)}.confetti i:nth-child(8){left:94%;animation-delay:1.4s;transform:rotate(50deg)}
-@keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translateY(360px) rotate(520deg);opacity:0}}
+.confetti i{position:absolute;width:9px;height:16px;top:-24px;border-radius:2px;animation:confetti-fall 3.4s linear infinite;opacity:.95;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.confetti i:nth-child(4n+1){background:#f28ab2}.confetti i:nth-child(4n+2){background:#7fa0ff}.confetti i:nth-child(4n+3){background:#f0a84f}.confetti i:nth-child(4n){background:#e94b3c}
+.confetti i:nth-child(3n+1){left:4%;animation-delay:-.2s}.confetti i:nth-child(3n+2){left:38%;animation-delay:-1.3s}.confetti i:nth-child(3n){left:72%;animation-delay:-2.1s}
+.confetti i:nth-child(5n+1){transform:rotate(15deg);margin-left:2%}.confetti i:nth-child(5n+2){transform:rotate(55deg);margin-left:10%}.confetti i:nth-child(5n+3){transform:rotate(20deg);margin-left:19%}.confetti i:nth-child(5n+4){transform:rotate(75deg);margin-left:27%}.confetti i:nth-child(5n){transform:rotate(35deg);margin-left:36%}
+@keyframes confetti-fall{0%{transform:translate3d(0,-24px,0) rotate(0deg);opacity:0}10%{opacity:1}55%{transform:translate3d(12px,190px,0) rotate(260deg);opacity:1}100%{transform:translate3d(-18px,380px,0) rotate(620deg);opacity:0}}
 @media(max-width:700px){.cloud-top .cloud-actions{flex-wrap:wrap;justify-content:flex-start}.committee-export-bar,.delegate-export-bar{justify-content:stretch}.committee-export-bar .btn,.delegate-export-bar .btn{flex:1 1 180px}}
 </style></head>
 <body><div class="app" id="app">
@@ -539,7 +541,27 @@ function nextSpeaker(){
 function creditCurrentSpeaker(){
   if(!currentMotion||presentationMode)return;const item=queue[queueIndex],country=typeof item==='string'?item:item?.country;if(!country)return;const key=`${currentMotion.id}:${country}`;if(spokenCredits.has(key))return;const d=delegates.find(x=>x.country===country);if(d){d.speakingTimes++;spokenCredits.add(key);persistState()}
 }
+const ACTIVE_TAB_KEY='ASCTEMUN_ACTIVE_TAB';
+const LAST_COMMITTEE_KEY='ASCTEMUN_LAST_COMMITTEE';
+const VALID_TABS=['dashboard','delegates','resolutions','speakers','profile'];
+function rememberedTab(){
+  try{
+    const t=localStorage.getItem(ACTIVE_TAB_KEY);
+    return VALID_TABS.includes(t)?t:'dashboard';
+  }catch(e){return 'dashboard'}
+}
+function rememberTab(tab){
+  try{localStorage.setItem(ACTIVE_TAB_KEY,tab)}catch(e){}
+}
+function rememberCommittee(id){
+  try{if(id)localStorage.setItem(LAST_COMMITTEE_KEY,id);else localStorage.removeItem(LAST_COMMITTEE_KEY)}catch(e){}
+}
+function rememberedCommittee(){
+  try{return localStorage.getItem(LAST_COMMITTEE_KEY)||''}catch(e){return ''}
+}
 function switchTab(tab){
+  if(!VALID_TABS.includes(tab))tab='dashboard';
+  rememberTab(tab);
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   ['dashboard','delegates','resolutions','speakers','profile'].forEach(v=>$(('view-'+v))?.classList.toggle('hidden',v!==tab));
   if(tab==='delegates')renderDelegates();if(tab==='resolutions')renderResolutions();
@@ -1077,18 +1099,24 @@ async function cloudRenderCommittees(){
     cloudMsg(cloudHubMessage,'');
   }catch(e){cloudMsg(cloudHubMessage,e.message||'Could not load committees.','error')}
 }
-async function cloudOpenCommittee(id){
-  cloudMsg(cloudHubMessage,'Opening committee…');
+async function cloudOpenCommittee(id,options={}){
+  if(!options.silent)cloudMsg(cloudHubMessage,'Opening committee…');
   const {data,error}=await cloudClient.from('committees').select('*').eq('id',id).single();
-  if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
+  if(error){
+    if(options.silent)throw error;
+    cloudMsg(cloudHubMessage,error.message||'Could not open committee.','error');
+    return false;
+  }
   cloudCommitteeId=data.id;
+  rememberCommittee(data.id);
   cloudApplyState(data.state||{});
   await cloudLoadSharedNotes(data.state?.notes||[]);
   cloudSubscribeCommittee(data.id);
   cloudShowHub(false);
   cloudShowAuth(false);
   cloudMsg(cloudHubMessage,'');
-  toast('Committee loaded');
+  if(options.restoreTab!==false)switchTab(rememberedTab());
+  if(!options.silent)toast('Committee loaded');
 }
 async function cloudCreateCommittee(importCurrent=false){
   const defaultName=importCurrent
@@ -1108,6 +1136,8 @@ async function cloudCreateCommittee(importCurrent=false){
   }).select().single();
   if(error){cloudMsg(cloudHubMessage,error.message,'error');return}
   cloudCommitteeId=data.id;
+  rememberCommittee(data.id);
+  rememberTab('dashboard');
   cloudApplyState(state);
   cloudShowHub(false);
   cloudMsg(cloudHubMessage,'');
@@ -1162,6 +1192,7 @@ function persistState(){
 async function cloudSignOut(){
   await cloudClient.auth.signOut();
   cloudUser=null;cloudCommitteeId=null;
+  rememberCommittee(null);rememberTab('dashboard');
   cloudShowHub(false);cloudShowAuth(true);
 }
 async function cloudBootstrap(){
@@ -1198,6 +1229,15 @@ async function cloudOnSession(session){
   cloudShowHub(true);
   await cloudRenderCommittees();
   if(cloudRole==='admin') cloudRenderOfficerList();
+  const lastCommittee=rememberedCommittee();
+  if(lastCommittee){
+    try{
+      await cloudOpenCommittee(lastCommittee,{restoreTab:true,silent:true});
+    }catch(e){
+      rememberCommittee(null);
+      switchTab('dashboard');
+    }
+  }
 }
 document.getElementById('cloudAuthForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -1310,7 +1350,7 @@ async function cloudLoadSharedNotes(legacyNotes=[]){
 function cloudAuthorName(){
   return cloudOfficerName || (cloudRole==='admin'?'Administrator':'Officer');
 }
-document.getElementById('cloudHeaderHomeBtn').addEventListener('click',async()=>{ if(cloudCommitteeChannel){try{await cloudClient.removeChannel(cloudCommitteeChannel)}catch(e){}} cloudCommitteeChannel=null; cloudCommitteeId=null; cloudShowHub(true); await cloudRenderCommittees(); });
+document.getElementById('cloudHeaderHomeBtn').addEventListener('click',async()=>{ if(cloudCommitteeChannel){try{await cloudClient.removeChannel(cloudCommitteeChannel)}catch(e){}} cloudCommitteeChannel=null; cloudCommitteeId=null; rememberCommittee(null); rememberTab('dashboard'); cloudShowHub(true); await cloudRenderCommittees(); });
 document.getElementById('cloudDiasBtn').addEventListener('click',async()=>{
   document.getElementById('asctemunDiasModal').style.display='flex';
   await cloudRenderOfficerList();
@@ -1396,8 +1436,57 @@ function renderResolutionVotingOrder(motionId){
 function downloadTextFile(filename,text,type='text/plain'){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
 function exportDelegateCSV(){const rows=[['Delegate/Country','Attendance','Motions','Times Speaking','Resolutions']];delegates.slice().sort((a,b)=>a.country.localeCompare(b.country,undefined,{sensitivity:'base'})).forEach(d=>{const resolutions=(d.resolutions||[]).length;rows.push([d.name?`${d.name} / ${d.country}`:d.country,d.status||'',d.motions||0,d.speakingTimes||0,resolutions])});downloadTextFile('ASCTEMUN_Delegate_Information.csv',rows.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8')}
-function delegateFeedbackHTML(d){const avg=d.scores?.length?(d.scores.reduce((a,b)=>a+b,0)/d.scores.length).toFixed(1):'—';const notesFor=notes.filter(n=>n.countryIds.includes(d.id));const resolutionRows=(d.resolutions||[]).map(x=>`<tr><td>${esc(x.title||'')}</td><td>${esc(x.presenter?'Presenter':x.role||'')}</td></tr>`).join('')||'<tr><td colspan="2">No resolution contributions recorded.</td></tr>';return `<section class="feedback-page"><h1>${esc(d.country)}</h1><h2>${esc(d.name||'')}</h2><div class="feedback-grid"><div><b>Attendance</b><span>${esc(d.status||'—')}</span></div><div><b>Motions</b><span>${d.motions||0}</span></div><div><b>Times Speaking</b><span>${d.speakingTimes||0}</span></div><div><b>Average Speech Score</b><span>${avg}</span></div><div><b>Resolutions</b><span>${(d.resolutions||[]).length}</span></div><div><b>Notes</b><span>${notesFor.length}</span></div></div><h3>Resolution Contributions</h3><table><thead><tr><th>Resolution</th><th>Role</th></tr></thead><tbody>${resolutionRows}</tbody></table><h3>Delegate Notes</h3>${notesFor.length?notesFor.map(n=>`<article class="note"><b>${esc(n.date||'')}</b><p>${esc(n.text||'')}</p></article>`).join(''):'<p>No notes recorded.</p>'}</section>`}
-function printDelegateFeedback(title,delegatesToPrint){const pages=delegatesToPrint.map(delegateFeedbackHTML).join('');const w=window.open('','_blank','noopener,noreferrer');if(!w){toast('Please allow pop-ups to export the PDF');return}w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>@page{size:letter;margin:.55in}body{font-family:Georgia,"Times New Roman",serif;color:#102A43}h1{font-size:28px;margin:0 0 4px}h2{font-size:17px;font-weight:400;margin:0 0 22px;color:#68788A}.feedback-page{page-break-after:always}.feedback-page:last-child{page-break-after:auto}.feedback-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.feedback-grid div{border:1px solid #d8dee7;border-radius:8px;padding:10px}.feedback-grid b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#68788A}.feedback-grid span{display:block;font-size:15px;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d8dee7;padding:8px;text-align:left;font-size:10px}th{background:#f3f5f8}.note{border:1px solid #d8dee7;border-radius:8px;padding:10px;margin:8px 0}.note p{white-space:pre-wrap;line-height:1.5}@media print{.feedback-page{page-break-after:always}}</style></head><body>${pages}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),300)}
+function feedbackMonthYear(){return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(new Date())}
+function delegateFeedbackHTML(d){
+ const avg=d.scores?.length?(d.scores.reduce((a,b)=>a+b,0)/d.scores.length).toFixed(1):'—';
+ const notesFor=notes.filter(n=>Array.isArray(n.countryIds)&&n.countryIds.includes(d.id));
+ const committeeName=(($('committeeTitle')?.textContent||'Committee Name').trim()||'Committee Name');
+ const contributionItems=(d.resolutions||[]).map(x=>{
+   const title=x.title||'Untitled resolution';
+   const role=x.role||'Contribution';
+   return `<li>${esc(title)}${role?` — ${esc(role)}`:''}</li>`;
+ }).join('')||'<li>—</li>';
+ const gameplayItems=notesFor.map(n=>`<li>${esc(n.text||'')}</li>`).join('')||'<li>—</li>';
+ return `<section class="feedback-page">
+   <div class="feedback-heading"><strong>${esc(feedbackMonthYear())} Committee Feedback</strong></div>
+   <div class="feedback-committee"><strong>${esc(committeeName)}</strong></div>
+   <hr>
+   <div class="feedback-delegate"><strong>Delegate: ${esc(d.name||'—')} – ${esc(d.country||'—')}</strong></div>
+   <table class="feedback-stats"><tr>
+     <td><strong>Times Spoke</strong><br><span>${d.speakingTimes||0}</span></td>
+     <td><strong>Motions Made</strong><br><span>${d.motions||0}</span></td>
+   </tr><tr>
+     <td><strong>Average Speech Score</strong><br><span>${esc(avg)}</span></td>
+     <td><strong>Times noted</strong><br><span>${notesFor.length}</span></td>
+   </tr></table>
+   <div class="feedback-section-title"><strong>Resolution Contributions</strong></div>
+   <ul>${contributionItems}</ul>
+   <hr>
+   <div class="feedback-section-title"><strong>Notes on Gameplay:</strong></div>
+   <ul>${gameplayItems}</ul>
+ </section>`;
+}
+function printDelegateFeedback(title,delegatesToPrint){
+ const pages=delegatesToPrint.map(delegateFeedbackHTML).join('');
+ const w=window.open('','_blank','noopener,noreferrer');
+ if(!w){toast('Please allow pop-ups to export the delegate feedback');return}
+ w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>
+ @page{size:letter;margin:.72in}
+ body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11pt;line-height:1.45;margin:0}
+ .feedback-page{page-break-after:always;min-height:9.1in}.feedback-page:last-child{page-break-after:auto}
+ .feedback-heading{font-size:15pt;margin:0 0 22px}
+ .feedback-committee{font-size:15pt;margin:0 0 22px}
+ .feedback-delegate{font-size:12pt;margin:18px 0 16px}
+ hr{border:0;border-top:1px solid #111;margin:18px 0}
+ .feedback-stats{width:100%;border-collapse:collapse;margin:14px 0 26px}
+ .feedback-stats td{width:50%;border:1px solid #222;padding:12px 14px;vertical-align:top;font-size:10.5pt}
+ .feedback-stats td strong{font-weight:700}.feedback-stats td span{display:inline-block;margin-top:5px;font-size:12pt}
+ .feedback-section-title{font-size:12pt;margin:22px 0 8px}
+ ul{margin:7px 0 20px 24px;padding:0}.feedback-page li{margin:5px 0;padding-left:2px}
+ @media print{.feedback-page{page-break-after:always}.feedback-page:last-child{page-break-after:auto}}
+ </style></head><body>${pages}</body></html>`);
+ w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
 function exportDelegateFeedbackPDF(id){const d=delegates.find(x=>x.id===id);if(d)printDelegateFeedback(`ASCTEMUN Delegate Feedback - ${d.country}`,[d])}
 function exportAllDelegateFeedbackPDF(){const list=delegates.slice().sort((a,b)=>a.country.localeCompare(b.country,undefined,{sensitivity:'base'}));printDelegateFeedback('ASCTEMUN Delegate Feedback - All Delegates',list)}
 
@@ -1427,7 +1516,7 @@ function submitResolutionVote(motionId,resolutionId){
    }
  });
  persistState();renderResolutions();renderDelegates();
- const resultHeader=esc(r.title);const resultMessage=passed?'This resolution has passed!':'This resolution has failed.';const confetti=passed?'<div class="confetti" aria-hidden="true">'+Array.from({length:8},()=>'<i></i>').join('')+'</div>':'';modal(passed?'Resolution passed':'Resolution failed',`<div class="resolution-result-modal ${passed?'passed':'failed'}"><div class="resolution-result-header">${resultHeader}</div>${confetti}<div class="resolution-result-message">${resultMessage}</div></div>`,`<button class="btn" onclick="nextResolutionVote(${motionId})">${m.votingIndex<m.votingOrder.length-1?'Next resolution →':'Finish voting'}</button>`,'resolution-result-modal');
+ const resultHeader=esc(r.title);const resultMessage=passed?'This resolution has passed!':'This resolution has failed.';const confetti=passed?'<div class="confetti" aria-hidden="true">'+Array.from({length:28},()=>'<i></i>').join('')+'</div>':'';modal(passed?'Resolution passed':'Resolution failed',`<div class="resolution-result-modal ${passed?'passed':'failed'}"><div class="resolution-result-header">${resultHeader}</div>${confetti}<div class="resolution-result-message">${resultMessage}</div></div>`,`<button class="btn" onclick="nextResolutionVote(${motionId})">${m.votingIndex<m.votingOrder.length-1?'Next resolution →':'Finish voting'}</button>`,'resolution-result-modal');
 }
 function nextResolutionVote(motionId){
  const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
