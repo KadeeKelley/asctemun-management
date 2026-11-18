@@ -198,7 +198,7 @@ body,.app{color:#8d9cb7}
 <section id="view-dashboard"><div class="stats"><div class="stat"><div class="stat-label">Quorum</div><div class="stat-value" id="statQuorum">1:0</div><div class="stat-note">out of <span id="statTotal">0</span> present</div></div><div class="stat"><div class="stat-label">Motions on the floor</div><div class="stat-value" id="statMotions">00</div><div class="stat-note"><span id="pendingMotionCount">0</span> currently pending</div></div></div>
 <div class="grid-main"><div class="panel"><div class="panel-head"><div><div class="panel-title">Motions & committee flow</div><div class="panel-desc">Motions are displayed from most to least disruptive.</div></div><button class="btn small primary" onclick="openMotion()">＋ New motion</button></div><div class="panel-body"><div class="motion-list" id="motionList"></div></div></div><div class="panel"><div class="panel-head"><div><div class="panel-title">Roll Call</div><div class="panel-desc">Attendance at a glance</div></div><button class="btn small tab-blue-btn" onclick="openRoll()">Take roll →</button></div><div class="panel-body"><div class="section-toolbar"><span class="eyebrow">Delegate attendance</span></div><div class="attendance-buttons"><button class="attendance-count" id="attendanceAllBtn" onclick="openRoll()"><b id="attendanceAllCount">0</b><span>In Attendance</span></button><button class="attendance-count" id="attendancePresentBtn" onclick="openRoll()"><b id="attendancePresentCount">0</b><span>Present</span></button><button class="attendance-count" id="attendancePVBtn" onclick="openRoll()"><b id="attendancePVCount">0</b><span>Present & Voting</span></button></div><div id="delegateAttendanceRoll" class="activity" style="margin-top:10px"></div><div class="view-all-wrap"><button class="btn view-all-delegates" onclick="switchTab('delegates')">View all delegates</button></div></div></div></div>
 </section>
-<section id="view-delegates" class="hidden"><div class="section-toolbar"><div><div class="panel-title delegate-directory-text">Delegate directory</div><div class="panel-desc" id="delegateDirectoryDesc">Attendance, times speaking, speech scores, and resolution contributions</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="search" id="delegateSearch" placeholder="Search delegate or country…" oninput="renderDelegates()"><button class="btn" onclick="openImport()">⇧ Import list</button><button class="btn primary tab-blue-btn" onclick="openRoll()">Take roll</button></div></div><div class="delegate-sort-tabs"><button class="sort-tab active" data-sort="country" onclick="setDelegateSort('country')">Country A–Z</button><button class="sort-tab" data-sort="name" onclick="setDelegateSort('name')">Name A–Z</button><button class="sort-tab" data-sort="most" onclick="setDelegateSort('most')">Most times spoken</button><button class="sort-tab" data-sort="least" onclick="setDelegateSort('least')">Least times spoken</button><button class="sort-tab" id="ratingSortTab" data-sort="rating" onclick="setDelegateSort('rating')">Highest speech rating</button></div><div class="table-wrap"><table><thead><tr><th>Delegate / Country</th><th>Attendance</th><th>Motions</th><th>Times speaking</th><th id="avgSpeechHeader">Avg. speech score</th><th>Resolutions</th></tr></thead><tbody id="delegateRows"></tbody></table></div><div style="margin-top:12px;font-size:10px;color:var(--muted)">Select a delegate to open their full participation profile.</div><div class="delegate-export-bar"><button class="btn" onclick="exportAllDelegateFeedbackPDF()">Export Delegate Feedback</button><button class="btn" onclick="exportDelegateCSV()">Export Delegate CSV</button></div></section>
+<section id="view-delegates" class="hidden"><div class="section-toolbar"><div><div class="panel-title delegate-directory-text">Delegate directory</div><div class="panel-desc" id="delegateDirectoryDesc">Attendance, times speaking, speech scores, and resolution contributions</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="search" id="delegateSearch" placeholder="Search delegate or country…" oninput="renderDelegates()"><button class="btn" onclick="openImport()">⇧ Import list</button><button class="btn primary tab-blue-btn" onclick="openRoll()">Take roll</button></div></div><div class="delegate-sort-tabs"><button class="sort-tab active" data-sort="country" onclick="setDelegateSort('country')">Country A–Z</button><button class="sort-tab" data-sort="name" onclick="setDelegateSort('name')">Name A–Z</button><button class="sort-tab" data-sort="most" onclick="setDelegateSort('most')">Most times spoken</button><button class="sort-tab" data-sort="least" onclick="setDelegateSort('least')">Least times spoken</button><button class="sort-tab" id="ratingSortTab" data-sort="rating" onclick="setDelegateSort('rating')">Highest speech rating</button></div><div class="table-wrap"><table><thead><tr><th>Delegate / Country</th><th>Attendance</th><th>Motions</th><th>Times speaking</th><th id="avgSpeechHeader">Avg. speech score</th><th>Resolutions</th></tr></thead><tbody id="delegateRows"></tbody></table></div><div style="margin-top:12px;font-size:10px;color:var(--muted)">Select a delegate to open their full participation profile.</div><div class="delegate-export-bar"><button class="btn" onclick="exportCommitteeSequence()">Export Committee Sequence</button><button class="btn" onclick="exportDelegateCSV()">Export Delegate CSV</button><button class="btn delete-btn" onclick="confirmDeleteAllDelegates()">Delete All Delegates</button></div></section>
 <section id="view-resolutions" class="hidden"><div class="section-toolbar"><div><div class="panel-title">Resolutions & working papers</div><div class="panel-desc">Keep draft resolutions ready for the floor and set their presentation order</div></div><button class="btn primary" onclick="openResolution()">＋ Add resolution</button></div><div id="resolutionList"></div><div id="resolutionMotionsSection"></div></section>
 <section id="view-speakers" class="hidden"><div class="committee-head"><div><div class="eyebrow" id="speakerEyebrow">Motion passed · Speaker queue</div><h1 class="committee-title" id="speakerTitle">Unmoderated caucus</h1><div class="subline" id="speakerSubtitle">Set the speaking order and manage the floor</div></div><div class="head-right"><button class="btn" onclick="switchTab('dashboard')">← Back to committee</button></div></div><div id="standardSpeakerLayout" class="speaker-layout fullscreen-speaker"><div class="panel"><div class="panel-head"><div><div class="panel-title">Speaker order</div><div class="panel-desc">Drag to reorder</div></div><button class="btn small" onclick="openQueueAdd()">＋ Add delegate</button></div><div class="panel-body"><div class="speaker-list" id="speakerList"></div></div></div><div class="panel timer-panel"><div class="panel-body" style="display:flex;flex-direction:column;flex:1;justify-content:space-between"><div class="country-banner" id="currentBanner"><div class="banner-label">Current speaker</div><div class="banner-name" id="currentCountry">—</div></div><div class="timer-center"><div><div class="timer-caption" id="timerCaption">Speaker timer</div><div class="timer-digits" id="timerDigits">01:00</div><div class="timer-progress"><span id="timerProgress"></span></div><div class="timer-controls"><button class="btn primary" id="timerToggle" onclick="toggleTimer()">▶ Start</button><button class="btn" onclick="resetTimer()">↺ Reset</button><button class="btn gold" onclick="nextSpeaker()">Next →</button></div><div class="rank timer-rank" id="speechRatingBlock"><label for="speechRank">Speech rating</label><select id="speechRank"><option value="">1–10</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option></select><button class="btn small" onclick="saveRank()">Save rating</button></div></div></div><div class="country-banner next" id="nextBanner"><div class="banner-label">Next speaker</div><div class="banner-name" id="nextCountry">Queue is empty</div></div></div></div></div><div id="unmodLayout" class="panel timer-panel hidden unmod-caucus-panel"><div class="panel-body unmod-caucus-body"><div class="timer-center"><div class="unmod-timer-wrap"><div class="timer-digits" id="unmodTimerDigits">10:00</div><div class="timer-progress"><span id="unmodTimerProgress"></span></div><div class="timer-controls"><button class="btn primary" id="unmodTimerToggle" onclick="toggleTimer()">▶ Start</button><button class="btn" onclick="resetTimer()">↺ Reset</button><button class="btn gold" onclick="nextSpeaker()">End caucus →</button></div></div></div></div></div></section>
 <section id="view-profile" class="hidden"><div class="section-toolbar"><button class="btn" onclick="switchTab('delegates')">← All delegates</button><span class="eyebrow">Delegate record</span></div><div id="profileContent"></div></section>
@@ -227,9 +227,10 @@ let resolutionDebateOrder=[];
 let resolutionDebateIndex=0;
 let resolutionDebatePhase='for';
 let resolutionDebateDragIndex=null;
+let committeeSequence=[];
 const STORAGE_KEY='asctemun_conference_state_v7';
-function persistState(){try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify({delegates,motions,resolutions,notes,appMode,delegateSort,committeeName:$('committeeTitle')?.textContent||'Committee Name',resolutionMotions,resolutionDebate,resolutionDebateOrder}))}catch(e){}}
-function restoreState(){try{let raw=sessionStorage.getItem(STORAGE_KEY);if(!raw)return;let st=JSON.parse(raw);delegates=Array.isArray(st.delegates)?st.delegates:delegates;motions=Array.isArray(st.motions)?st.motions:motions;resolutions=Array.isArray(st.resolutions)?st.resolutions:resolutions;notes=Array.isArray(st.notes)?st.notes:notes;appMode=st.appMode==='committee'?'committee':'chair';delegateSort=st.delegateSort||'country';resolutionMotions=st.resolutionMotions||resolutionMotions;resolutionDebate=st.resolutionDebate||{};resolutionDebateOrder=Array.isArray(st.resolutionDebateOrder)?st.resolutionDebateOrder:[];if(st.committeeName&&$('committeeTitle'))$('committeeTitle').textContent=st.committeeName;resolutions.forEach(r=>{if(!r.presenters)r.presenters=[]})}catch(e){}}
+function persistState(){try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify({delegates,motions,resolutions,notes,appMode,delegateSort,committeeName:$('committeeTitle')?.textContent||'Committee Name',resolutionMotions,resolutionDebate,resolutionDebateOrder,committeeSequence}))}catch(e){}}
+function restoreState(){try{let raw=sessionStorage.getItem(STORAGE_KEY);if(!raw)return;let st=JSON.parse(raw);delegates=Array.isArray(st.delegates)?st.delegates:delegates;motions=Array.isArray(st.motions)?st.motions:motions;resolutions=Array.isArray(st.resolutions)?st.resolutions:resolutions;notes=Array.isArray(st.notes)?st.notes:notes;appMode=st.appMode==='committee'?'committee':'chair';delegateSort=st.delegateSort||'country';resolutionMotions=st.resolutionMotions||resolutionMotions;resolutionDebate=st.resolutionDebate||{};resolutionDebateOrder=Array.isArray(st.resolutionDebateOrder)?st.resolutionDebateOrder:[];committeeSequence=Array.isArray(st.committeeSequence)?st.committeeSequence:[];if(st.committeeName&&$('committeeTitle'))$('committeeTitle').textContent=st.committeeName;resolutions.forEach(r=>{if(!r.presenters)r.presenters=[]})}catch(e){}}
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){let t=document.createElement('div');t.className='toast';t.textContent=s;document.body.append(t);setTimeout(()=>t.remove(),2600)}
 function toggleSettingsMenu(){let m=$('settingsMenu');if(!m)return;m.classList.toggle('open')}
@@ -277,8 +278,8 @@ function renderQueue(){$('speakerList').innerHTML=queue.map((item,i)=>{let count
 function updateBanners(){let item=queue[queueIndex],next=queue[queueIndex+1];let current=typeof item==='string'?item:item?.country,nextCountry=typeof next==='string'?next:next?.country;if(currentMotion?.type==='Resolution 2 For 2 Against'){let res=typeof item==='string'?null:resolutions.find(r=>r.id===item?.resolutionId),nres=typeof next==='string'?null:resolutions.find(r=>r.id===next?.resolutionId);$('currentCountry').textContent=current?`Speaking ${item.side} Resolution ${res?.title||''}`:'Queue complete';$('nextCountry').textContent=next?`Speaking ${next.side} Resolution ${nres?.title||''}`:'Queue is empty';$('timerCaption').textContent='Speaker timer';return}$('currentCountry').textContent=current||'Queue complete';$('nextCountry').textContent=nextCountry||'Queue is empty';$('timerCaption').textContent=presentationMode?(presentationPhase==='presenting'?'Presenting time':'Q&A time'):currentMotion?.type==='Moderated caucus'?'Speaker timer':'Caucus timer'}
 function openQueueAdd(){modal('Add delegate to speaker order',`<div class="form-grid">${delegatePicker('SELECT DELEGATE','queueDelegate')}</div>`,`<button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="addQueueDelegate()">Add to queue</button>`);suggestDelegate('queueDelegate')}function addQueueDelegate(){let id=+$('queueDelegate').dataset.delegate;if(!id){toast('Choose a delegate from the suggestions');return}let c=delegates.find(d=>d.id===id).country;if(queue.includes(c)){toast('Delegate is already in the queue');return}queue.push(c);closeModal();renderQueue()}function moveSpeaker(i,dir){let j=i+dir;if(j<0||j>=queue.length)return;let item=queue.splice(i,1)[0];queue.splice(j,0,item);if(queueIndex===i)queueIndex=j;else if(queueIndex===j)queueIndex=i;renderQueue();updateTimer()}function removeSpeaker(i){if(i===queueIndex&&timerRunning)pauseTimer();queue.splice(i,1);if(i<queueIndex)queueIndex--;if(queueIndex>=queue.length)queueIndex=Math.max(0,queue.length-1);renderQueue();updateTimer()}
 function formatTime(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}function updateTimer(){if(currentMotion?.type==='Unmoderated caucus'&&!$('unmodLayout').classList.contains('hidden')){$('unmodTimerDigits').textContent=formatTime(timerRemaining);$('unmodTimerProgress').style.width=(timerSeconds?timerRemaining/timerSeconds*100:0)+'%';$('unmodTimerToggle').textContent=timerRunning?'Ⅱ Pause':'▶ Start';return}$('timerDigits').textContent=formatTime(timerRemaining);$('timerProgress').style.width=(timerSeconds?timerRemaining/timerSeconds*100:0)+'%';$('timerToggle').textContent=timerRunning?'Ⅱ Pause':'▶ Start'}function tick(){if(timerRemaining>0){timerRemaining--;updateTimer()}else{pauseTimer();$('timerDigits').textContent='00:00';toast('Speaking time is up — select Next when ready.')}}function toggleTimer(){if(timerRunning)pauseTimer();else{if(timerRemaining===0)timerRemaining=timerSeconds;timerRunning=true;timerHandle=setInterval(tick,1000);updateTimer()}}function pauseTimer(){clearInterval(timerHandle);timerRunning=false;updateTimer()}function resetTimer(){pauseTimer();timerRemaining=timerSeconds;updateTimer()}function creditResolutionPresenters(){if(!presentationMode||!queue[queueIndex])return;let r=resolutions.find(x=>x.title===queue[queueIndex]);if(!r||presentationCredited.has(r.id))return;(r.presenters||[]).forEach(country=>{let d=delegates.find(x=>x.country===country);if(d)d.speakingTimes++});presentationCredited.add(r.id);renderDelegates();updateStats()}function creditCurrentSpeaker(){if(!currentMotion||presentationMode)return;let item=queue[queueIndex],country=typeof item==='string'?item:item?.country;if(!country)return;let key=`${currentMotion.id}:${country}`;if(spokenCredits.has(key))return;let d=delegates.find(x=>x.country===country);if(d){d.speakingTimes++;spokenCredits.add(key);persistState()}}
-function finishPassedMotion(){if(!currentMotion)return;let id=currentMotion.id;motions=motions.filter(m=>m.id!==id);currentMotion=null;persistState();renderMotions();updateStats();setTimeout(()=>switchTab('dashboard'),250)}
-function nextSpeaker(){pauseTimer();if(currentMotion?.type==='Unmoderated caucus'){toast('Unmoderated caucus complete');finishPassedMotion();return}if(presentationMode){if(presentationPhase==='presenting'){presentationPhase='qa';timerSeconds=qaTime;timerRemaining=qaTime;updateBanners();updateTimer();return}presentationPhase='presenting';if(queueIndex<queue.length-1){queueIndex++;timerSeconds=presentationTime;timerRemaining=presentationTime;creditResolutionPresenters();renderQueue();updateTimer()}else{toast('Resolution presentation queue complete');updateBanners();setTimeout(()=>switchTab('dashboard'),250)}return}creditCurrentSpeaker();if(queueIndex<queue.length-1){queueIndex++;timerSeconds=currentMotion?.speaking||timerSeconds;timerRemaining=timerSeconds;renderQueue();updateTimer()}else{creditCurrentSpeaker();toast('Speaker queue complete');finishPassedMotion();}persistState();renderDelegates();updateStats()}function saveRank(){let n=+$('speechRank').value;let item=queue[queueIndex],country=typeof item==='string'?item:item?.country;if(!n||!country)return;let d=delegates.find(x=>x.country===country);if(d)d.scores.push(n);persistState();toast('Speech score saved')}
+function finishPassedMotion(){if(!currentMotion)return;let id=currentMotion.id;motions=motions.filter(m=>m.id!==id);currentMotion=null;persistState();renderMotions();updateStats();/* Stay on the current tab after completing a motion. */}
+function nextSpeaker(){pauseTimer();if(currentMotion?.type==='Unmoderated caucus'){toast('Unmoderated caucus complete');finishPassedMotion();return}if(presentationMode){if(presentationPhase==='presenting'){presentationPhase='qa';timerSeconds=qaTime;timerRemaining=qaTime;updateBanners();updateTimer();return}presentationPhase='presenting';if(queueIndex<queue.length-1){queueIndex++;timerSeconds=presentationTime;timerRemaining=presentationTime;creditResolutionPresenters();renderQueue();updateTimer()}else{toast('Resolution presentation queue complete');updateBanners();/* Stay on the current tab after completing a motion. */}return}creditCurrentSpeaker();if(queueIndex<queue.length-1){queueIndex++;timerSeconds=currentMotion?.speaking||timerSeconds;timerRemaining=timerSeconds;renderQueue();updateTimer()}else{creditCurrentSpeaker();toast('Speaker queue complete');finishPassedMotion();}persistState();renderDelegates();updateStats()}function saveRank(){let n=+$('speechRank').value;let item=queue[queueIndex],country=typeof item==='string'?item:item?.country;if(!n||!country)return;let d=delegates.find(x=>x.country===country);if(d)d.scores.push(n);persistState();toast('Speech score saved')}
 function toggleNotesDrawer(){let d=$('notesDrawer'),t=$('notesTabTrigger');d.classList.toggle('hidden');t?.classList.toggle('open',!d.classList.contains('hidden'));if(!d.classList.contains('hidden'))renderNotes()}
 function renderNotes(){let box=$('notesList');if(!box)return;box.innerHTML=notes.slice().reverse().map(n=>`<div class="note-card" onclick="openNoteEditor('${n.id}')"><div class="note-countries">${n.countries.map(esc).join(', ')||'No countries selected'}</div><div class="note-text">${esc(n.text)}</div><div class="note-date"><b>${esc(n.authorName||'Administrator')}</b> · ${esc(n.date||'')}</div></div>`).join('')||'<div class="muted">No notes yet. Add a note to start your committee record.</div>'}
 function renderNoteCountryResults(){let input=$('noteCountrySearch'),box=$('noteCountryResults');if(!input||!box)return;let q=input.value.trim().toLowerCase();let choices=delegates.filter(d=>!noteSelected.includes(d.id)&&(!q||d.country.toLowerCase().startsWith(q)||d.name.toLowerCase().startsWith(q))).sort((a,b)=>a.country.localeCompare(b.country,undefined,{sensitivity:'base'}));box.innerHTML=choices.map(d=>`<div class="note-country-result" onclick="toggleNoteCountry(${d.id})">${esc(d.country)}</div>`).join('');box.classList.toggle('hidden',!choices.length)}
@@ -454,7 +455,7 @@ function saveResolutionMotion(){
   const speaking=Math.max(1,+$('resolutionSpeakingTime')?.value||60);
   const m={id:nextResolutionMotionId(),type,status:'Pending',motionMaker:window._resolutionMotionMaker,speakingTime:speaking,introducedOrder:resolutionMotions.length};
   if(type==='presentation')m.presentationTime=Math.max(1,+$('resolutionPresentationTime').value||5);
-  resolutionMotions.push(m);window._resolutionMotionMaker=null;persistResolutionMotionState();closeModal();renderResolutionMotions();toast('Resolution motion added');
+  resolutionMotions.push(m);const resolutionMaker=delegates.find(d=>d.country===m.motionMaker);if(resolutionMaker)resolutionMaker.motions=(Number(resolutionMaker.motions)||0)+1;window._resolutionMotionMaker=null;persistResolutionMotionState();closeModal();renderResolutionMotions();toast('Resolution motion added');
 }
 function resolutionMotionAction(id){
   const m=resolutionMotions.find(x=>x.id===id);if(!m)return;
@@ -549,10 +550,10 @@ function nextSpeaker(){
   if(currentMotion?.type==='Unmoderated caucus'){toast('Unmoderated caucus complete');finishPassedMotion();return}
   if(presentationMode){
     if(presentationPhase==='presenting'){presentationPhase='qa';timerSeconds=qaTime;timerRemaining=qaTime;updateBanners();updateTimer();return}
-    presentationPhase='presenting';if(queueIndex<queue.length-1){queueIndex++;timerSeconds=presentationTime;timerRemaining=presentationTime;creditResolutionPresenters();renderQueue();updateTimer()}else{toast('Resolution presentation queue complete');setTimeout(()=>switchTab('dashboard'),250)}return;
+    presentationPhase='presenting';if(queueIndex<queue.length-1){queueIndex++;timerSeconds=presentationTime;timerRemaining=presentationTime;creditResolutionPresenters();renderQueue();updateTimer()}else{toast('Resolution presentation queue complete');/* Stay on the current tab after completing a motion. */}return;
   }
   creditCurrentSpeaker();
-  if(queueIndex<queue.length-1){queueIndex++;timerSeconds=currentMotion?.speaking||timerSeconds;timerRemaining=timerSeconds;renderQueue();updateTimer()}else{creditCurrentSpeaker();toast('Speaker queue complete');if(String(currentMotion?.type||'').startsWith('Resolution')){currentMotion=null;setTimeout(()=>switchTab('dashboard'),250)}else finishPassedMotion()}
+  if(queueIndex<queue.length-1){queueIndex++;timerSeconds=currentMotion?.speaking||timerSeconds;timerRemaining=timerSeconds;renderQueue();updateTimer()}else{creditCurrentSpeaker();toast('Speaker queue complete');if(String(currentMotion?.type||'').startsWith('Resolution')){currentMotion=null;/* Stay on the current tab after completing a motion. */}else finishPassedMotion()}
   persistState();renderDelegates();updateStats();
 }
 function creditCurrentSpeaker(){
@@ -679,7 +680,7 @@ function motionAction(id){
   modal('Motion outcome',`<p>Committee outcome for <b>${esc(m.type)}</b> motion</p><p class="panel-desc">${esc(m.meta)} · Moved by ${esc(m.delegate)} · Current status: ${esc(m.status)}</p>`,`<button class="btn" onclick="closeModal()">Keep pending</button><button class="btn primary" onclick="passMotion(${id})">Mark as passed</button><button class="btn motion-failed" onclick="failMotion(${id})">Mark failed</button>`)
 }
 function finishPassedMotion(){
-  if(!currentMotion)return;const id=currentMotion.id;motions=motions.filter(m=>m.id!==id);currentMotion=null;persistState();renderMotions();updateStats();setTimeout(()=>switchTab('dashboard'),250);
+  if(!currentMotion)return;const id=currentMotion.id;motions=motions.filter(m=>m.id!==id);currentMotion=null;persistState();renderMotions();updateStats();/* Stay on the current tab after completing a motion. */;
 }
 
 /* Notes are unavailable in Committee Mode, including direct clicks. */
@@ -798,7 +799,7 @@ function nextSpeaker(){
     }
     currentMotion=null;presentationMode=false;window._resolutionRun=null;
     persistState();renderDelegates();updateStats();
-    setTimeout(()=>switchTab('dashboard'),250);
+    /* Stay on the current tab after completing a motion. */;
     return;
   }
   creditCurrentSpeaker();
@@ -822,7 +823,7 @@ function nextSpeaker(){
     }
     currentMotion=null;window._resolutionRun=null;
     persistState();renderDelegates();updateStats();
-    setTimeout(()=>switchTab('dashboard'),250);
+    /* Stay on the current tab after completing a motion. */;
   }else{
     /* Passed regular motions leave Committee Flow and the floor counter only here,
        after Next is pressed with no speakers remaining in the queue. */
@@ -1067,7 +1068,7 @@ function cloudState(){
   return {
     delegates, motions, resolutions, appMode, delegateSort,
     committeeName: $('committeeTitle')?.textContent || 'Committee Name',
-    resolutionMotions, resolutionDebate, resolutionDebateOrder
+    resolutionMotions, resolutionDebate, resolutionDebateOrder, committeeSequence
   };
 }
 function cloudApplyState(st){
@@ -1081,6 +1082,7 @@ function cloudApplyState(st){
   resolutionMotions=st.resolutionMotions||resolutionMotions;
   resolutionDebate=st.resolutionDebate||{};
   resolutionDebateOrder=Array.isArray(st.resolutionDebateOrder)?st.resolutionDebateOrder:[];
+  committeeSequence=Array.isArray(st.committeeSequence)?st.committeeSequence:[];
   resolutions.forEach(r=>{if(!r.presenters)r.presenters=[]});
   if(st.committeeName && $('committeeTitle')) $('committeeTitle').textContent=st.committeeName;
   resolutionOrder=resolutions.map(r=>r.id);
@@ -1539,13 +1541,80 @@ function submitResolutionVote(motionId,resolutionId){
    }
  });
  persistState();renderResolutions();renderDelegates();
- const resultHeader=esc(r.title);const resultMessage=passed?'This resolution has passed!':'This resolution has failed.';const confetti=passed?'<div class="confetti" aria-hidden="true">'+Array.from({length:28},()=>'<i></i>').join('')+'</div>':'';modal(passed?'Resolution passed':'Resolution failed',`<div class="resolution-result-modal ${passed?'passed':'failed'}"><div class="resolution-result-header">${resultHeader}</div>${confetti}<div class="resolution-result-message">${resultMessage}</div></div>`,`<button class="btn" onclick="nextResolutionVote(${motionId})">${m.votingIndex<m.votingOrder.length-1?'Next resolution →':'Finish voting'}</button>`,'resolution-result-modal');
+ const resultMessage=passed?'This resolution has passed!':'This resolution has failed.';const confetti=passed?'<div class="confetti" aria-hidden="true">'+Array.from({length:28},()=>'<i></i>').join('')+'</div>':'';modal(passed?'Resolution passed':'Resolution failed',`<div class="resolution-result-modal ${passed?'passed':'failed'}">${confetti}<div class="resolution-result-message">${resultMessage}</div></div>`,`<button class="btn" onclick="nextResolutionVote(${motionId})">${m.votingIndex<m.votingOrder.length-1?'Next resolution →':'Finish voting'}</button>`,'resolution-result-modal');
 }
 function nextResolutionVote(motionId){
  const m=resolutionMotions.find(x=>x.id===motionId);if(!m)return;
  if(m.votingIndex<m.votingOrder.length-1){m.votingIndex++;persistState();showResolutionVote(motionId)}
  else{closeModal();m.votingComplete=true;persistState();toast('Voting complete');window._activeVotingMotionId=null;renderResolutions()}
 }
+</script>
+
+
+<script>
+/* ASCTEMUN safe incremental committee-sequence and navigation updates. */
+function recordCommitteeOutcome(type,country,result){
+  if(result!=='Passed'&&result!=='Failed')return;
+  if(!Array.isArray(committeeSequence))committeeSequence=[];
+  committeeSequence.push({type:String(type||'Motion'),country:String(country||'—'),result,recordedAt:new Date().toISOString()});
+}
+function exportCommitteeSequence(){
+  const rows=[['Motion Type','Country','Result'],...(Array.isArray(committeeSequence)?committeeSequence:[]).map(e=>[e.type,e.country,e.result])];
+  const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n';
+  const committee=($('committeeTitle')?.textContent||'Committee').trim().replace(/[^a-z0-9_-]+/gi,'_').slice(0,65)||'Committee';
+  downloadTextFile(committee+'_Sequence.csv',csv,'text/csv;charset=utf-8');
+}
+function confirmDeleteAllDelegates(){
+  modal('Delete all delegates',`<p><b>Are you sure?</b></p><p>This will delete all ${delegates.length} delegate records in this committee, including their participation statistics. This cannot be undone.</p>`,
+    '<button class="btn" onclick="closeModal()">No, cancel</button><button class="btn delete-btn" onclick="deleteAllDelegatesConfirmed()">Yes, delete all delegates</button>');
+}
+function deleteAllDelegatesConfirmed(){
+  delegates=[];queue=[];queueIndex=0;
+  if(currentMotion){pauseTimer();currentMotion=null;}
+  persistState();closeModal();updateStats();renderDelegates();renderMotions();renderResolutions();
+  switchTab('delegates');toast('All delegates deleted');
+}
+const _munOriginalFailMotion=failMotion;
+failMotion=function(id){
+  const m=motions.find(x=>x.id===id);
+  if(m){recordCommitteeOutcome(m.type,m.motionMaker||m.delegate,'Failed');}
+  _munOriginalFailMotion(id);
+};
+const _munOriginalPassMotion=passMotion;
+passMotion=function(id){
+  const m=motions.find(x=>x.id===id);
+  if(m&&m.status!=='Passed')recordCommitteeOutcome(m.type,m.motionMaker||m.delegate,'Passed');
+  _munOriginalPassMotion(id);
+};
+const _munOriginalFailResolutionMotion=failResolutionMotion;
+failResolutionMotion=function(id){
+  const m=Array.isArray(resolutionMotions)?resolutionMotions.find(x=>x.id===id):null;
+  if(m)recordCommitteeOutcome(resolutionMotionTypeLabel(m.type),m.motionMaker||'Committee','Failed');
+  _munOriginalFailResolutionMotion(id);
+};
+const _munOriginalPassResolutionMotion=passResolutionMotionV8;
+passResolutionMotionV8=function(id){
+  const m=Array.isArray(resolutionMotions)?resolutionMotions.find(x=>x.id===id):null;
+  if(m&&m.status!=='Passed')recordCommitteeOutcome(resolutionMotionTypeLabel(m.type),m.motionMaker||'Committee','Passed');
+  _munOriginalPassResolutionMotion(id);
+};
+/* Keep the last selected page on live state refreshes. */
+const _munOriginalCloudApplyState=cloudApplyState;
+cloudApplyState=function(st){
+  const visible=VALID_TABS.find(t=>!$('view-'+t)?.classList.contains('hidden'))||rememberedTab();
+  _munOriginalCloudApplyState(st);
+  switchTab(visible);
+};
+/* Ignore redundant auth session events that previously reopened the committee hub. */
+const _munOriginalCloudOnSession=cloudOnSession;
+let _munSessionOpening=false;
+cloudOnSession=async function(session){
+  if(session?.user && cloudUser?.id===session.user.id && cloudCommitteeId)return;
+  if(session?.user && _munSessionOpening)return;
+  if(session?.user)_munSessionOpening=true;
+  try{return await _munOriginalCloudOnSession(session)}
+  finally{_munSessionOpening=false;}
+};
 </script>
 
 </body></html>
